@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "@hyperlane-xyz/core/contracts/interfaces/IInterchainGasPaymaster.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface ILiquidityLayerRouter {
     function dispatchWithTokens(
@@ -14,10 +15,10 @@ interface ILiquidityLayerRouter {
     ) external returns (bytes32);
 }
 
-contract LiquidityAPIRouter{
+contract LiquidityRouter{
 
     event TokenSentWithMessage(bytes32 indexed messageId, uint32 indexed destDomain, address indexed recipientAddress, uint256 amount, string message);
-    event TokenRecievedWithMessage(uint32 indexed origin, address indexed sender, string message, uint256 amount);
+    event TokenReceivedWithMessage(uint32 indexed origin, address indexed sender, string message, uint256 amount);
     address liquidityRouter;
     address interchainGasPaymaster;
     address USDCAddress;
@@ -29,6 +30,8 @@ contract LiquidityAPIRouter{
     }
 
     function send(uint32 _dest, address _recipient, uint256 _amount, string memory _message) payable external{
+        IERC20(USDCAddress).transferFrom(msg.sender, address(this), _amount);
+        IERC20(USDCAddress).approve(liquidityRouter, _amount);
         bytes32 messageId = ILiquidityLayerRouter(liquidityRouter).dispatchWithTokens(
             _dest,
             addressToBytes32(_recipient),
@@ -54,7 +57,7 @@ contract LiquidityAPIRouter{
         address _token,
         uint256 _amount
     ) external{
-        emit TokenRecievedWithMessage(_origin, bytes32ToAddress(_sender), abi.decode(_message, (string)), _amount);
+        emit TokenReceivedWithMessage(_origin, bytes32ToAddress(_sender), abi.decode(_message, (string)), _amount);
     }
 
 
